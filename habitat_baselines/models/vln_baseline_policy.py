@@ -128,9 +128,9 @@ class VLNBaselineNet(Net):
         return self.state_encoder.num_recurrent_layers
 
     def _init_layers(self):
-        nn.init.kaiming_normal(
+        nn.init.kaiming_normal_(
             self.progress_monitor.weight,
-            nn.init.calculate_gain("tanh"),
+            nonlinearity="tanh",
         )
         nn.init.constant_(
             self.progress_monitor.bias,
@@ -155,7 +155,11 @@ class VLNBaselineNet(Net):
         progress_hat = torch.tanh(self.progress_monitor(x))
         progress_loss = F.mse_loss(progress_hat.squeeze(1), observations['progress'])
 
-        if AuxLosses.is_active():
-            AuxLosses.register_loss("progress_monitor", progress_loss, 0.2)
+        if self.vln_config.PROGRESS_MONITOR.use and AuxLosses.is_active():
+            AuxLosses.register_loss(
+                "progress_monitor",
+                progress_loss,
+                self.vln_config.PROGRESS_MONITOR.alpha,
+            )
 
         return x, rnn_hidden_states

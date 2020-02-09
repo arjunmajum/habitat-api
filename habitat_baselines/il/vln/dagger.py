@@ -492,7 +492,6 @@ class DaggerTrainer(BaseRLTrainer):
         action_loss = ((weights * action_loss).sum(0) / weights.sum(0)).mean()
 
         aux_loss = AuxLosses.reduce()
-        print(aux_loss)
 
         loss = action_loss + aux_loss
         loss.backward()
