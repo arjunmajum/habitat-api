@@ -26,6 +26,7 @@ from habitat_baselines.common.tensorboard_utils import TensorboardWriter
 from habitat_baselines.common.utils import batch_obs, transform_obs
 from habitat_baselines.models.rcm.vln_rcm_policy import VLNRCMPolicy
 from habitat_baselines.models.vln_baseline_policy import VLNBaselinePolicy
+from habitat_baselines.rl.aux_losses import AuxLosses
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning)
@@ -476,6 +477,8 @@ class DaggerTrainer(BaseRLTrainer):
             device=self.device,
         )
 
+        AuxLosses.clear()
+
         distribution = self.actor_critic.build_distribution(
             observations, recurrent_hidden_states, prev_actions, not_done_masks
         )
@@ -483,10 +486,15 @@ class DaggerTrainer(BaseRLTrainer):
         logits = distribution.logits
         logits = logits.view(T, N, -1)
 
-        loss = F.cross_entropy(
+        action_loss = F.cross_entropy(
             logits.permute(0, 2, 1), corrected_actions, reduction="none"
         )
-        loss = ((weights * loss).sum(0) / weights.sum(0)).mean()
+        action_loss = ((weights * action_loss).sum(0) / weights.sum(0)).mean()
+
+        aux_loss = AuxLosses.reduce()
+        print(aux_loss)
+
+        loss = action_loss + aux_loss
         loss.backward()
 
         self.optimizer.step()
@@ -561,6 +569,8 @@ class DaggerTrainer(BaseRLTrainer):
                     num_workers=3,
                 )
 
+
+                AuxLosses.activate()
                 for epoch in tqdm.trange(self.config.DAGGER.EPOCHS):
                     for batch in tqdm.tqdm(
                         diter, total=len(diter), leave=False
@@ -644,6 +654,7 @@ class DaggerTrainer(BaseRLTrainer):
                     self.save_checkpoint(
                         f"ckpt.{dagger_it * self.config.DAGGER.EPOCHS + epoch}.pth"
                     )
+                AuxLosses.deactivate()
 
     @staticmethod
     def _pause_envs(

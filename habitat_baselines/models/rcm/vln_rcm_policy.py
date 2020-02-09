@@ -26,6 +26,7 @@ from habitat_baselines.models.simple_cnn import (
     SimpleRGBCNN,
 )
 from habitat_baselines.rl.ppo.policy import Net, Policy
+from habitat_baselines.rl.aux_losses import AuxLosses
 
 
 class VLNRCMPolicy(Policy):
@@ -164,7 +165,27 @@ class VLNRCMNet(Net):
             "_scale", torch.tensor(1.0 / ((hidden_size // 2) ** 0.5))
         )
 
+        self.progress_monitor = nn.Linear(
+            self.vln_config.STATE_ENCODER.hidden_size
+            + self.vln_config.VISUAL_ENCODER.output_size
+            + self.vln_config.DEPTH_ENCODER.output_size
+            + self.instruction_encoder.output_size,
+            1
+        )
+
+        self._init_layers()
+
         self.train()
+
+    def _init_layers(self):
+        nn.init.kaiming_normal(
+            self.progress_monitor.weight,
+            nn.init.calculate_gain("tanh"),
+        )
+        nn.init.constant_(
+            self.progress_monitor.bias,
+            0,
+        )
 
     @property
     def output_size(self):
@@ -250,6 +271,12 @@ class VLNRCMNet(Net):
             [state, text_embedding, rgb_embedding, depth_embedding], dim=1
         )
 
+        progress_hat = torch.tanh(self.progress_monitor(x))
+        progress_loss = F.mse_loss(progress_hat.squeeze(1), observations['progress'])
+
+        if AuxLosses.is_active():
+            AuxLosses.register_loss("progress_monitor", progress_loss, 0.2)
+
         return x, rnn_hidden_states
 
 
@@ -295,6 +322,7 @@ if __name__ == "__main__":
         rgb=torch.randn(4 * 2, 224, 224, 3, device=device),
         depth=torch.randn(4 * 2, 256, 256, 1, device=device),
         instruction=dummy_instruction,
+        progress=torch.randn(4 * 2, 1, device=device),
     )
 
     hidden_states = torch.randn(
@@ -305,6 +333,8 @@ if __name__ == "__main__":
     )
     prev_actions = torch.randint(0, 3, size=(4 * 2, 1), device=device)
     masks = torch.ones(4 * 2, 1, device=device)
+
+    AuxLosses.activate()
 
     policy.evaluate_actions(
         obs, hidden_states, prev_actions, masks, prev_actions

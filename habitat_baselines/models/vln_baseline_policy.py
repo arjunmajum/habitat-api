@@ -1,6 +1,8 @@
 import abc
 
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from gym import Space
 
 from habitat import Config
@@ -16,6 +18,7 @@ from habitat_baselines.models.simple_cnn import (
     SimpleRGBCNN,
 )
 from habitat_baselines.rl.ppo.policy import Net, Policy
+from habitat_baselines.rl.aux_losses import AuxLosses
 
 
 class VLNBaselinePolicy(Policy):
@@ -103,6 +106,13 @@ class VLNBaselineNet(Net):
             rnn_type=vln_config.STATE_ENCODER.rnn_type,
         )
 
+        self.progress_monitor = nn.Linear(
+            self.vln_config.STATE_ENCODER.hidden_size,
+            1
+        )
+
+        self._init_layers()
+
         self.train()
 
     @property
@@ -116,6 +126,16 @@ class VLNBaselineNet(Net):
     @property
     def num_recurrent_layers(self):
         return self.state_encoder.num_recurrent_layers
+
+    def _init_layers(self):
+        nn.init.kaiming_normal(
+            self.progress_monitor.weight,
+            nn.init.calculate_gain("tanh"),
+        )
+        nn.init.constant_(
+            self.progress_monitor.bias,
+            0,
+        )
 
     def forward(self, observations, rnn_hidden_states, prev_actions, masks):
         r"""
@@ -131,4 +151,11 @@ class VLNBaselineNet(Net):
             [instruction_embedding, depth_embedding, rgb_embedding], dim=1
         )
         x, rnn_hidden_states = self.state_encoder(x, rnn_hidden_states, masks)
+
+        progress_hat = torch.tanh(self.progress_monitor(x))
+        progress_loss = F.mse_loss(progress_hat.squeeze(1), observations['progress'])
+
+        if AuxLosses.is_active():
+            AuxLosses.register_loss("progress_monitor", progress_loss, 0.2)
+
         return x, rnn_hidden_states
