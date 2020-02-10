@@ -498,7 +498,11 @@ class DaggerTrainer(BaseRLTrainer):
 
         self.optimizer.step()
 
-        return loss.item()
+        if isinstance(aux_loss, torch.Tensor):
+            return loss.item(), action_loss.item(), aux_loss.item()
+        else:
+            return loss.item(), action_loss.item(), aux_loss
+
 
     def train(self) -> None:
         r"""Main method for training DAgger.
@@ -587,7 +591,7 @@ class DaggerTrainer(BaseRLTrainer):
                         }
 
                         try:
-                            loss = self._update_agent(
+                            loss, action_loss, aux_loss = self._update_agent(
                                 observations_batch,
                                 prev_actions_batch.to(
                                     device=self.device, non_blocking=True
@@ -606,7 +610,7 @@ class DaggerTrainer(BaseRLTrainer):
                             logger.info(
                                 "ERROR: failed to update agent. Updating agent with batch size of 1."
                             )
-                            loss = 0
+                            loss, action_loss, aux_loss = 0, 0, 0
                             prev_actions_batch = prev_actions_batch.cpu()
                             not_done_masks = not_done_masks.cpu()
                             corrected_actions_batch = (
@@ -618,7 +622,7 @@ class DaggerTrainer(BaseRLTrainer):
                                 for k, v in observations_batch.items()
                             }
                             for i in range(not_done_masks.size(0)):
-                                loss += self._update_agent(
+                                output = self._update_agent(
                                     {
                                         k: v[i].to(
                                             device=self.device,
@@ -639,14 +643,25 @@ class DaggerTrainer(BaseRLTrainer):
                                         device=self.device, non_blocking=True
                                     ),
                                 )
+                                loss += output[0]
+                                action_loss += output[1]
+                                aux_loss += output[2]
 
                         logger.info(f"train_loss: {loss}")
+                        logger.info(f"train_action_loss: {action_loss}")
+                        logger.info(f"train_aux_loss: {aux_loss}")
                         logger.info(f"Batches processed: {step_id}.")
                         logger.info(
                             f"On DAgger iter {dagger_it}, Epoch {epoch}."
                         )
                         writer.add_scalar(
                             f"train_loss_iter_{dagger_it}", loss, step_id
+                        )
+                        writer.add_scalar(
+                            f"train_action_loss_iter_{dagger_it}", action_loss, step_id
+                        )
+                        writer.add_scalar(
+                            f"train_aux_loss_iter_{dagger_it}", aux_loss, step_id
                         )
                         step_id += 1
 

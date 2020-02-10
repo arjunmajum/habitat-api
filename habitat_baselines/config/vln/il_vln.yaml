@@ -70,6 +70,6 @@ VLN:
 
   PROGRESS_MONITOR:
     # Set to True to use a progress monitor
-    use: True
+    use: False
     # Progress monitor loss multiplier
     alpha: 1.0
