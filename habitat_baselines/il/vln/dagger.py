@@ -21,12 +21,12 @@ from habitat_baselines.common.env_utils import (
     construct_envs,
     construct_envs_auto_reset_false,
 )
+from habitat_baselines.common.aux_losses import AuxLosses
 from habitat_baselines.common.environments import get_env_class
 from habitat_baselines.common.tensorboard_utils import TensorboardWriter
 from habitat_baselines.common.utils import batch_obs, transform_obs
 from habitat_baselines.models.rcm.vln_rcm_policy import VLNRCMPolicy
 from habitat_baselines.models.vln_baseline_policy import VLNBaselinePolicy
-from habitat_baselines.rl.aux_losses import AuxLosses
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning)

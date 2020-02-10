@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from gym import Space
 
 from habitat import Config
+from habitat_baselines.common.aux_losses import AuxLosses
 from habitat_baselines.models.instruction_encoder import InstructionEncoder
 from habitat_baselines.models.resnet_encoders import (
     TorchVisionResNet50,
@@ -18,7 +19,6 @@ from habitat_baselines.models.simple_cnn import (
     SimpleRGBCNN,
 )
 from habitat_baselines.rl.ppo.policy import Net, Policy
-from habitat_baselines.rl.aux_losses import AuxLosses
 
 
 class VLNBaselinePolicy(Policy):
