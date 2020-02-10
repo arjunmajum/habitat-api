@@ -166,11 +166,8 @@ class VLNRCMNet(Net):
         )
 
         self.progress_monitor = nn.Linear(
-            self.vln_config.STATE_ENCODER.hidden_size
-            + self.vln_config.VISUAL_ENCODER.output_size
-            + self.vln_config.DEPTH_ENCODER.output_size
-            + self.instruction_encoder.output_size,
-            1
+            self.output_size,
+            1,
         )
 
         self._init_layers()
@@ -271,10 +268,9 @@ class VLNRCMNet(Net):
             [state, text_embedding, rgb_embedding, depth_embedding], dim=1
         )
 
-        progress_hat = torch.tanh(self.progress_monitor(x))
-        progress_loss = F.mse_loss(progress_hat.squeeze(1), observations['progress'])
-
         if self.vln_config.PROGRESS_MONITOR.use and AuxLosses.is_active():
+            progress_hat = torch.tanh(self.progress_monitor(x))
+            progress_loss = F.mse_loss(progress_hat.squeeze(1), observations['progress'])
             AuxLosses.register_loss(
                 "progress_monitor",
                 progress_loss,

@@ -152,10 +152,10 @@ class VLNBaselineNet(Net):
         )
         x, rnn_hidden_states = self.state_encoder(x, rnn_hidden_states, masks)
 
-        progress_hat = torch.tanh(self.progress_monitor(x))
-        progress_loss = F.mse_loss(progress_hat.squeeze(1), observations['progress'])
 
         if self.vln_config.PROGRESS_MONITOR.use and AuxLosses.is_active():
+            progress_hat = torch.tanh(self.progress_monitor(x))
+            progress_loss = F.mse_loss(progress_hat.squeeze(1), observations['progress'])
             AuxLosses.register_loss(
                 "progress_monitor",
                 progress_loss,

@@ -163,9 +163,7 @@ class VLNOracleProgressSensor(Sensor):
             current_position, episode.goals[0].position
         )
 
-        distance_from_start = self._sim.geodesic_distance(
-            episode.start_position, episode.goals[0].position
-        )
+        distance_from_start = episode.info["geodesic_distance"]
 
         return (distance_from_start - distance_to_target) / distance_from_start
 
