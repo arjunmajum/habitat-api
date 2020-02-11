@@ -1,3 +1,6 @@
+import torch
+
+
 class _AuxLosses:
     def __init__(self):
         self._losses = {}
@@ -18,12 +21,13 @@ class _AuxLosses:
     def get_loss(self, name):
         return self._losses[name]
 
-    def reduce(self):
+    def reduce(self, mask):
         assert self.is_active()
         total = 0.0
 
         for k in self._losses.keys():
-            total = total + self._loss_alphas[k] * self._losses[k]
+            k_loss = torch.masked_select(self._losses[k], mask).mean()
+            total = total + self._loss_alphas[k] * k_loss
 
         return total
 

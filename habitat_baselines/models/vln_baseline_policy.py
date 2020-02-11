@@ -160,7 +160,6 @@ class VLNBaselineNet(Net):
                 observations['progress'],
                 reduction='none',
             )
-            progress_loss = (progress_loss.unsqueeze(1) * masks).sum() / masks.sum()
             AuxLosses.register_loss(
                 "progress_monitor",
                 progress_loss,
