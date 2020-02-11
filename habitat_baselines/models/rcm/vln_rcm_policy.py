@@ -270,7 +270,12 @@ class VLNRCMNet(Net):
 
         if self.vln_config.PROGRESS_MONITOR.use and AuxLosses.is_active():
             progress_hat = torch.tanh(self.progress_monitor(x))
-            progress_loss = F.mse_loss(progress_hat.squeeze(1), observations['progress'])
+            progress_loss = F.mse_loss(
+                progress_hat.squeeze(1),
+                observations['progress'],
+                reduction='none',
+            )
+            progress_loss = (progress_loss.unsqueeze(1) * masks).sum() / masks.sum()
             AuxLosses.register_loss(
                 "progress_monitor",
                 progress_loss,
