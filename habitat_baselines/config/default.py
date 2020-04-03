@@ -140,6 +140,7 @@ _C.VLN.INSTRUCTION_ENCODER.hidden_size = 512
 _C.VLN.INSTRUCTION_ENCODER.rnn_type = "LSTM"
 _C.VLN.INSTRUCTION_ENCODER.final_state_only = True
 _C.VLN.INSTRUCTION_ENCODER.zero_out_features = False
+_C.VLN.INSTRUCTION_ENCODER.bidirectional = False
 _C.VLN.VISUAL_ENCODER = CN()
 # TODO create setting for SimpleCNN to process the combined RGB+Depth image.
 # VISUAL_ENCODER cnn_type must be of 'SimpleRGBCNN' or 'TorchVisionResNet50'
